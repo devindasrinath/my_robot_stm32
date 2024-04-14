@@ -47,7 +47,6 @@ void stringCallback(const std_msgs::Float32MultiArray& msg)
 		left_vel = roundf((vel_left/60)*495);
 		right_vel = roundf((vel_right/60)*495);
 	}
-	osSemaphoreRelease (myVelWriteBinarySem01Handle);
 
 }
 
@@ -77,24 +76,12 @@ char str[100];
 
 void loop(void)
 {
-	//#ifdef STM32F4xx
-	//  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-	//#ifdef STM32F3xx
-	//  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
-	//#endif
-
-
-//	if(osSemaphoreWait (myVelReadBinarySem02Handle,  0) == pdTRUE){
-//		internal_real_left_vel = real_left_vel;
-//		internal_real_right_vel = real_right_vel;
-//	}
 
 	std::sprintf(str, "[%f,%f],[%f,%f]", real_left_vel,real_right_vel,left_vel*60.0/495,right_vel*60.0/495);
 	str_msg.data = str;
 	chatter.publish(&str_msg);
 
 	nh.spinOnce();
-	//HAL_Delay(100);
 }
 
 
