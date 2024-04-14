@@ -1,0 +1,6 @@
+../ECUAL/motor_driver/motor_driver.c:4:6:motor_init	1
+../ECUAL/motor_driver/motor_driver.c:14:6:motor_run	5
+../ECUAL/motor_driver/motor_driver.c:28:6:motor_stop	4
+../ECUAL/motor_driver/motor_driver.c:36:6:enable_motor	1
+../ECUAL/motor_driver/motor_driver.c:42:6:disable_motor	1
+../ECUAL/motor_driver/motor_driver.c:47:6:calculate_pwm_values	1

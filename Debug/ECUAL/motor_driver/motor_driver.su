@@ -1,0 +1,6 @@
+../ECUAL/motor_driver/motor_driver.c:4:6:motor_init	24	static
+../ECUAL/motor_driver/motor_driver.c:14:6:motor_run	32	static
+../ECUAL/motor_driver/motor_driver.c:28:6:motor_stop	16	static
+../ECUAL/motor_driver/motor_driver.c:36:6:enable_motor	16	static
+../ECUAL/motor_driver/motor_driver.c:42:6:disable_motor	16	static
+../ECUAL/motor_driver/motor_driver.c:47:6:calculate_pwm_values	24	static
