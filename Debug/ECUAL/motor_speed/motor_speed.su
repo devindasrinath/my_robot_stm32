@@ -1,9 +1,9 @@
 ../ECUAL/motor_speed/motor_speed.c:21:6:init_motor_dynamics	24	static
-../ECUAL/motor_speed/motor_speed.c:47:6:update_encoder_count_per_sampling_period	32	static
-../ECUAL/motor_speed/motor_speed.c:63:5:get_speed_count	16	static
-../ECUAL/motor_speed/motor_speed.c:76:8:get_speed_rpm	24	static
-../ECUAL/motor_speed/motor_speed.c:90:8:get_speed_linear_ms	24	static
-../ECUAL/motor_speed/motor_speed.c:97:13:add_to_filter_buffer	24	static
-../ECUAL/motor_speed/motor_speed.c:111:15:filter_output	24	static
-../ECUAL/motor_speed/motor_speed.c:116:6:reset_filter	24	static
-../ECUAL/motor_speed/motor_speed.c:126:6:init_filter	24	static
+../ECUAL/motor_speed/motor_speed.c:48:6:update_encoder_count_per_sampling_period	24	static
+../ECUAL/motor_speed/motor_speed.c:77:5:get_speed_count	16	static
+../ECUAL/motor_speed/motor_speed.c:90:8:get_speed_rpm	24	static
+../ECUAL/motor_speed/motor_speed.c:104:8:get_speed_linear_ms	24	static
+../ECUAL/motor_speed/motor_speed.c:111:6:add_to_filter_buffer	24	static
+../ECUAL/motor_speed/motor_speed.c:126:8:filter_output	24	static
+../ECUAL/motor_speed/motor_speed.c:131:6:reset_filter	24	static
+../ECUAL/motor_speed/motor_speed.c:142:6:init_filter	24	static

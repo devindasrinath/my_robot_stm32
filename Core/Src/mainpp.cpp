@@ -13,14 +13,20 @@
 #include <FreeRTOS.h>
 #include "cmsis_os.h"
 
-extern uint8_t command;
-extern double left_vel;
-extern double right_vel;
-extern osSemaphoreId myVelWriteBinarySem01Handle;
-extern osSemaphoreId myVelReadBinarySem02Handle;
+#define VELOCITY_TO_TICK(x) roundf((x/60)*495)
+#define TICK_TO_VELOCTIY(x) ((x*60.0)/495.0)
 
-double real_left_vel = 0;
-double real_right_vel = 0;
+enum  robot_action {
+ ROBOT_STOP = 0,
+ ROBOT_MOVE  = 1
+};
+
+extern volatile uint8_t command;
+extern volatile double left_vel;
+extern volatile double right_vel;
+
+volatile double real_left_vel = 0;
+volatile double real_right_vel = 0;
 
 ros::NodeHandle nh;
 
@@ -28,24 +34,25 @@ std_msgs::String str_msg;
 
 ros::Publisher chatter("stm32_to_pc", &str_msg);
 
+
 double vel_left = 0;
 double vel_right = 0;
 
 void stringCallback(const std_msgs::Float32MultiArray& msg)
 {
 
-	double vel_left = msg.data[0];
-	double vel_right = msg.data[1];
+	vel_left = msg.data[0];
+	vel_right = msg.data[1];
 
 	if ((vel_left == 0) &&(vel_right == 0)){
-		command = 0;
-		left_vel =0;
+		command = ROBOT_STOP;
+		left_vel = 0;
 		right_vel = 0;
 	}
 	else {
-		command = 1;
-		left_vel = roundf((vel_left/60)*495);
-		right_vel = roundf((vel_right/60)*495);
+		command = ROBOT_MOVE;
+		left_vel = VELOCITY_TO_TICK(vel_left);
+		right_vel = VELOCITY_TO_TICK(vel_right);
 	}
 
 }
@@ -70,14 +77,12 @@ void setup(void)
   nh.advertise(chatter);
 }
 
-double internal_real_left_vel = 0;
-double internal_real_right_vel = 0;
 char str[100];
 
 void loop(void)
 {
 
-	std::sprintf(str, "[%f,%f],[%f,%f]", real_left_vel,real_right_vel,left_vel*60.0/495,right_vel*60.0/495);
+	std::sprintf(str, "[%f,%f],[%f,%f]", real_left_vel,real_right_vel,TICK_TO_VELOCTIY(left_vel),TICK_TO_VELOCTIY(right_vel));
 	str_msg.data = str;
 	chatter.publish(&str_msg);
 

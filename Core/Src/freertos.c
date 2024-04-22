@@ -44,23 +44,30 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+enum  robot_action {
+ ROBOT_STOP = 0,
+ ROBOT_MOVE  = 1
+};
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-int internal_command = 0;
 extern PIDController pid_controller_left_motor;
 extern PIDController pid_controller_right_motor;
-extern uint8_t command;
-extern double left_vel;
-extern double right_vel;
+
 extern MotorDynamics left_motor_dynamics ;
 extern MotorDynamics right_motor_dynamics ;
-extern double real_left_vel;
-extern double real_right_vel;
+
 extern Motor motor1;
 extern Motor motor2;
+
+extern volatile uint8_t command;
+extern volatile double left_vel;
+extern volatile double right_vel;
+
+extern volatile double real_left_vel;
+extern volatile double real_right_vel;
+
 /* USER CODE END Variables */
 osThreadId defaultROSTaskHandle;
 osTimerId myPIDTimer01Handle;
@@ -165,13 +172,14 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
+
+	/* Start Timers for both loops */
 	osTimerStart (myPIDTimer01Handle,PID_LOOP_PERIOD_MS );
 	osTimerStart (myROSTimer02Handle,ROS_LOOP_PERIOD_MS );
 
   /* Infinite loop */
   for(;;)
   {
-
 	  osDelay(1);
   }
   /* USER CODE END StartDefaultTask */
@@ -181,43 +189,41 @@ void StartDefaultTask(void const * argument)
 void Callback01(void const * argument)
 {
   /* USER CODE BEGIN Callback01 */
-	update_encoder_count_per_sampling_period(&left_motor_dynamics,((int)(TIM3->CNT) >> 2));
-	update_encoder_count_per_sampling_period(&right_motor_dynamics,((int)(TIM4->CNT) >> 2));
 
-	//if(osSemaphoreWait (myVelWriteBinarySem01Handle,  0) == pdTRUE){
-		pid_controller_left_motor.target_value = left_vel;
-		pid_controller_right_motor.target_value = right_vel;
-		internal_command = command;
+	/* update encoder count */
+	update_encoder_count_per_sampling_period(&left_motor_dynamics);
+	update_encoder_count_per_sampling_period(&right_motor_dynamics);
 
-	//}
+	/* update target motor velocities count */
+	pid_controller_left_motor.target_value = left_vel;
+	pid_controller_right_motor.target_value = right_vel;
 
-	if(internal_command != 0)
+	/* Update real time velocities */
+	real_left_vel = get_speed_rpm(&left_motor_dynamics);
+	real_right_vel = get_speed_rpm(&right_motor_dynamics);
+
+	/* Robot moving command */
+	if(command == ROBOT_MOVE)
 	{
-
+		/* Calculate PID outputs and control motors */
 		pid_controller_left_motor.current_value = get_speed_count(&left_motor_dynamics);
 		pid_controller_right_motor.current_value = get_speed_count(&right_motor_dynamics);
-
-		real_left_vel = get_speed_rpm(&left_motor_dynamics);
-		real_right_vel = get_speed_rpm(&right_motor_dynamics);
-
-		//osSemaphoreRelease (myVelReadBinarySem02Handle);
 
 		PID_calculate(&pid_controller_left_motor);
 		PID_calculate(&pid_controller_right_motor);
 
-		motor_run(&motor2,pid_controller_left_motor.output/1024.0);
-		motor_run(&motor1,pid_controller_right_motor.output/1024.0);
+		motor_run(&motor2,pid_controller_left_motor.output/1024.0); /* PWM is range from 0 - 1 ,PID output range from  0 -1024 */
+		motor_run(&motor1,pid_controller_right_motor.output/1024.0); /* PWM is range from 0 - 1 ,PID output range from  0 -1024 */
 	}
 	else
 	{
-
-		real_left_vel = 0;
-		real_right_vel = 0;
+		/* stop motors */
 		motor_stop(&motor2);
 		motor_stop(&motor1);
-		PID_reset(&pid_controller_left_motor);
 		PID_reset(&pid_controller_right_motor);
+		PID_reset(&pid_controller_left_motor);
 	}
+
   /* USER CODE END Callback01 */
 }
 

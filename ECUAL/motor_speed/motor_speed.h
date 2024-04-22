@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <math.h>
+#include "stm32f1xx_hal.h"
 
 #define SAMPLING_PERIOD 0.01
 #define MINIUTE_DURATION 60
@@ -32,17 +33,18 @@ typedef struct {
 	double gear_ratio ;
 	double counts_per_revolution;
     AverageFilter* averageFilter;
+    TIM_HandleTypeDef* htim;
 }MotorDynamics;
 
 
 void my_func(MotorDynamics* motor_dynamics);
-void init_motor_dynamics(MotorDynamics* motor_dynamics, double wheel_diameter, double gear_ratio, double counts_per_revolution, AverageFilter* averageFilter);
-void update_encoder_count_per_sampling_period(MotorDynamics* motor_dynamics, double current_encoder_count);
+void init_motor_dynamics(MotorDynamics* motor_dynamics, double wheel_diameter, double gear_ratio, double counts_per_revolution, AverageFilter* averageFilter, TIM_HandleTypeDef* htim);
+void update_encoder_count_per_sampling_period(MotorDynamics* motor_dynamics);
 double get_speed_rpm(MotorDynamics* motor_dynamics);
 double get_speed_liner_ms(MotorDynamics* motor_dynamics);
 int get_speed_count(MotorDynamics* motor_dynamics) ;
-static void add_to_filter_buffer(AverageFilter *filter, int8_t encoder_count);
-static double filter_output(AverageFilter *filter);
+void add_to_filter_buffer(AverageFilter *filter, int8_t encoder_count);
+double filter_output(AverageFilter *filter);
 void reset_filter(AverageFilter *filter);
 void init_filter(AverageFilter *filter , uint8_t num_samples);
 

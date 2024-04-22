@@ -40,16 +40,24 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-// Define PID parameters
+/* Define PID parameters */
 #define KP 1
 #define KI 3
 #define KD 0.0001
 #define DT 0.01
 
-// Define PWM limits
+/* Define PWM limits */
 #define PWM_MAX 1024
-#define PWM_MIN 0
+#define PWM_MIN -1024
 #define PWM_STOP 0.3f
+
+/* Define Filter parameters */
+#define FILTER_LENGTH 100
+
+/* Define motor dynamic parameters*/
+#define WHEEL_DIAMETER 0.060
+#define ENCODER_RESOLUTION 11
+#define MOTOR_GEAR_RATIO 45
 
 /* USER CODE END PD */
 
@@ -61,24 +69,31 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
 /* Define motor instances */
 Motor motor1 = {.port = GPIOB, .pin_f = GPIO_PIN_13, .pin_b = GPIO_PIN_12, .timer = &htim2, .channel = TIM_CHANNEL_1};
 Motor motor2 = {.port = GPIOB, .pin_f = GPIO_PIN_15, .pin_b = GPIO_PIN_14, .timer = &htim2, .channel = TIM_CHANNEL_2};
 
+/* Define motor dynamics */
 MotorDynamics left_motor_dynamics ;
 MotorDynamics right_motor_dynamics ;
 
+/* Define average filters for motor Dynamics*/
 AverageFilter leftMotorAverageFilter;
 AverageFilter rightMotorAverageFilter;
 
+/* Define PID controllers for motors */
 PIDController pid_controller_left_motor;
 PIDController pid_controller_right_motor;
 
-uint8_t command = 0;
-double left_vel = 0;
-double right_vel = 0;
+/* Define variables to interact wilt ROS loop */
+volatile uint8_t command = 0;
+volatile double left_vel = 0;
+volatile double right_vel = 0;
 
-char MSG[100] ;
+extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim4;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -130,23 +145,27 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  init_filter(&leftMotorAverageFilter, 100);
-  init_filter(&rightMotorAverageFilter, 100);
+  /* Initialize filters */
+  init_filter(&leftMotorAverageFilter, FILTER_LENGTH);
+  init_filter(&rightMotorAverageFilter, FILTER_LENGTH);
 
+  /* Initialize PID loops */
   PID_Init(&pid_controller_left_motor,KP,KI,KD,DT,PWM_MIN,PWM_MAX);
   PID_Init(&pid_controller_right_motor,KP,KI,KD,DT,PWM_MIN,PWM_MAX);
 
+  /* Initialize motor dynamics */
+  init_motor_dynamics(&left_motor_dynamics, WHEEL_DIAMETER, MOTOR_GEAR_RATIO, ENCODER_RESOLUTION, &leftMotorAverageFilter, &htim3);
+  init_motor_dynamics(&right_motor_dynamics, WHEEL_DIAMETER, MOTOR_GEAR_RATIO, ENCODER_RESOLUTION, &rightMotorAverageFilter, &htim4);
 
   /* Enable motors */
   enable_motor(&motor1);
   enable_motor(&motor2);
 
-  init_motor_dynamics(&left_motor_dynamics , 0.060 , 45 , 11,&leftMotorAverageFilter);
-  init_motor_dynamics(&right_motor_dynamics , 0.060 , 45 , 11, &rightMotorAverageFilter);
-
+  /* Start encoders */
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
 
+  /* Setup ROS event loop */
   setup();
 
   /* USER CODE END 2 */

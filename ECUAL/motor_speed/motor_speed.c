@@ -18,7 +18,7 @@
  * @param gear_ratio Gear ratio.
  * @param counts_per_revolution Counts per revolution.
  */
-void init_motor_dynamics(MotorDynamics* motor_dynamics, double wheel_diameter, double gear_ratio, double counts_per_revolution, AverageFilter* averageFilter) {
+void init_motor_dynamics(MotorDynamics* motor_dynamics, double wheel_diameter, double gear_ratio, double counts_per_revolution, AverageFilter* averageFilter, TIM_HandleTypeDef* htim) {
     // Initialize members with default values
     motor_dynamics->encoder_count_per_sampling_period = 0;
     motor_dynamics->rpm = 0;
@@ -32,6 +32,7 @@ void init_motor_dynamics(MotorDynamics* motor_dynamics, double wheel_diameter, d
     motor_dynamics->counts_per_revolution = counts_per_revolution;
 
     motor_dynamics->averageFilter = averageFilter;
+    motor_dynamics->htim = htim;
 }
 
 /**
@@ -44,9 +45,22 @@ void init_motor_dynamics(MotorDynamics* motor_dynamics, double wheel_diameter, d
  * @param motor_dynamics Podoubleer to MotorDynamics struct
  * @param current_encoder_count Current tick count
  */
-void update_encoder_count_per_sampling_period(MotorDynamics* motor_dynamics, double current_encoder_count) {
-    motor_dynamics->current_encoder_count = current_encoder_count;
-    motor_dynamics->encoder_count_per_sampling_period = motor_dynamics->current_encoder_count - motor_dynamics->previous_encoder_count;
+void update_encoder_count_per_sampling_period(MotorDynamics* motor_dynamics) {
+    motor_dynamics->current_encoder_count = (double) (__HAL_TIM_GET_COUNTER(motor_dynamics->htim)>>2);
+
+    if(__HAL_TIM_IS_TIM_COUNTING_DOWN(motor_dynamics->htim) && (motor_dynamics->current_encoder_count > motor_dynamics->previous_encoder_count)) {
+    	/* Underflow condition */
+    	motor_dynamics->encoder_count_per_sampling_period = motor_dynamics->current_encoder_count - 1 - __HAL_TIM_GET_AUTORELOAD(motor_dynamics->htim) - motor_dynamics->previous_encoder_count;
+    }
+    else if(!__HAL_TIM_IS_TIM_COUNTING_DOWN(motor_dynamics->htim) && (motor_dynamics->current_encoder_count < motor_dynamics->previous_encoder_count )){
+    	/* Overflow condition */
+    	motor_dynamics->encoder_count_per_sampling_period = motor_dynamics->current_encoder_count + 1 + __HAL_TIM_GET_AUTORELOAD(motor_dynamics->htim) - motor_dynamics->previous_encoder_count;
+    }
+   	else {
+   		/* normal counting condition */
+   		motor_dynamics->encoder_count_per_sampling_period = motor_dynamics->current_encoder_count - motor_dynamics->previous_encoder_count;
+   }
+
     motor_dynamics->previous_encoder_count = motor_dynamics->current_encoder_count;
     add_to_filter_buffer(motor_dynamics->averageFilter, (int8_t)motor_dynamics->encoder_count_per_sampling_period);
 }
@@ -94,11 +108,12 @@ double get_speed_linear_ms(MotorDynamics* motor_dynamics) {
 
 
 
-static void add_to_filter_buffer(AverageFilter *filter, int8_t encoder_count){
+void add_to_filter_buffer(AverageFilter *filter, int8_t encoder_count){
 
-	filter->sum += (abs(encoder_count) - filter->samples[99]);
+	filter->sum = encoder_count;
     for(uint8_t i =99; i>0; i--){
         filter->samples[i] = filter->samples[i-1];
+        filter->sum += filter->samples[i-1];
     }
     filter->samples[0] = encoder_count;
 
@@ -108,7 +123,7 @@ static void add_to_filter_buffer(AverageFilter *filter, int8_t encoder_count){
 
 }
 
-static double filter_output(AverageFilter *filter){
+double filter_output(AverageFilter *filter){
     return  ((double) (filter->sum))/(filter->sample_count);
 }
 
@@ -116,6 +131,7 @@ static double filter_output(AverageFilter *filter){
 void reset_filter(AverageFilter *filter){
 
 	filter->sum =0;
+	filter->sample_count = 0;
 
 	for(int i = 0; i < filter->num_samples; i++ ){
 		filter->samples[0] = 0;
